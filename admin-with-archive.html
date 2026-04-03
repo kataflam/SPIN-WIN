@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kataflam Admin - Firebase</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .spins-list {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .spin-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 2fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .spin-item:last-child {
+            border-bottom: none;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        button.danger {
+            background: #dc3545;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+        }
+
+        button.warning {
+            background: #ff9800;
+        }
+
+        button.warning:hover {
+            background: #f57c00;
+        }
+
+        .actions {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        input[type="password"] {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            margin: 10px;
+            max-width: 300px;
+        }
+
+        .prize-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .voucher-code {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .archive-badge {
+            background: #ffeaa7;
+            color: #d63031;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <button class="logout-btn" onclick="logout()" style="display:none" id="logoutBtn">🚪 Logout</button>
+
+    <div class="container" id="loginScreen">
+        <div class="header">
+            <h1>🔐 Admin Login</h1>
+            <p>Enter password to access Firebase admin panel</p>
+            <input type="password" id="passwordInput" placeholder="Password">
+            <br>
+            <button onclick="login()">🔓 Login</button>
+        </div>
+    </div>
+
+    <div class="container" id="adminPanel" style="display: none;">
+        <div class="header">
+            <h1>🔥 Kataflam Admin Panel (Firebase)</h1>
+            <p>Real-time stats with Archive System</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('active')">📊 Active Spins</button>
+            <button class="tab" onclick="switchTab('archive')">🗄️ Archive</button>
+        </div>
+
+        <!-- Active Spins Tab -->
+        <div id="activeTab" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Spins</div>
+                    <div class="stat-value" id="totalSpins">...</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Users Played</div>
+                    <div class="stat-value" id="usersCount">...</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Prizes Won</div>
+                    <div class="stat-value" id="prizesWon">...</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Last Update</div>
+                    <div class="stat-value" style="font-size: 1.2em;" id="lastUpdate">...</div>
+                </div>
+            </div>
+
+            <div class="spins-list">
+                <h3 style="margin-bottom: 20px;">📋 Recent Spins</h3>
+                <div id="spinsList">
+                    <div class="loading">Loading spins...</div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button onclick="refreshData()">🔄 Refresh Data</button>
+                <button onclick="resetAllSpins()" class="danger">⚠️ Reset All Spins (Archive First)</button>
+            </div>
+        </div>
+
+        <!-- Archive Tab -->
+        <div id="archiveTab" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Archived</div>
+                    <div class="stat-value" id="archiveCount">...</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Archive Sessions</div>
+                    <div class="stat-value" id="archiveSessions">...</div>
+                </div>
+            </div>
+
+            <div class="spins-list">
+                <h3 style="margin-bottom: 20px;">🗄️ Archived Spins</h3>
+                <div id="archiveList">
+                    <div class="loading">Loading archive...</div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button onclick="loadArchive()">🔄 Refresh Archive</button>
+                <button onclick="clearArchive()" class="warning">⚠️ Clear All Archive</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, deleteDoc, writeBatch, setDoc, addDoc } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8XrdiNB_GsnbrI9ri0ve1E4XqboWCWC8",
+            authDomain: "kataflam-spin.firebaseapp.com",
+            projectId: "kataflam-spin",
+            storageBucket: "kataflam-spin.firebasestorage.app",
+            messagingSenderId: "631678725448",
+            appId: "1:631678725448:web:54dd6ab20ed8e7eeecd77d",
+            measurementId: "G-G0EGYVQMQK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const ADMIN_PASSWORD = 'kataflam2025';
+        let spinsData = [];
+        let archiveData = [];
+
+        window.switchTab = function(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'active') {
+                document.querySelector('.tab:first-child').classList.add('active');
+                document.getElementById('activeTab').classList.add('active');
+                loadData();
+            } else {
+                document.querySelector('.tab:last-child').classList.add('active');
+                document.getElementById('archiveTab').classList.add('active');
+                loadArchive();
+            }
+        };
+
+        window.login = function() {
+            const pwd = document.getElementById('passwordInput').value;
+            if (pwd === ADMIN_PASSWORD) {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                document.getElementById('logoutBtn').style.display = 'block';
+                loadData();
+            } else {
+                alert('❌ Wrong password!');
+            }
+        };
+
+        window.logout = function() {
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('passwordInput').value = '';
+        };
+
+        async function loadData() {
+            try {
+                const statsDoc = await getDoc(doc(db, 'stats', 'global'));
+                if (statsDoc.exists()) {
+                    const data = statsDoc.data();
+                    document.getElementById('totalSpins').textContent = data.totalSpins || 0;
+                    const date = new Date(data.lastUpdate);
+                    document.getElementById('lastUpdate').textContent = 
+                        date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+                }
+
+                const spinsSnapshot = await getDocs(collection(db, 'spins'));
+                spinsData = [];
+                spinsSnapshot.forEach(doc => {
+                    spinsData.push({ id: doc.id, ...doc.data() });
+                });
+
+                document.getElementById('usersCount').textContent = spinsData.length;
+                const prizesWon = spinsData.filter(s => s.voucher !== 'none').length;
+                document.getElementById('prizesWon').textContent = prizesWon;
+
+                renderSpinsList();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('⚠️ Error loading. Check console.');
+            }
+        }
+
+        async function loadArchive() {
+            try {
+                const archiveSnapshot = await getDocs(collection(db, 'spins_archive'));
+                archiveData = [];
+                archiveSnapshot.forEach(doc => {
+                    archiveData.push({ id: doc.id, ...doc.data() });
+                });
+
+                document.getElementById('archiveCount').textContent = archiveData.length;
+                
+                // Count unique archive sessions
+                const sessions = new Set(archiveData.map(d => d.archiveDate));
+                document.getElementById('archiveSessions').textContent = sessions.size;
+
+                renderArchiveList();
+            } catch (error) {
+                console.error('Archive error:', error);
+                alert('⚠️ Error loading archive.');
+            }
+        }
+
+        function renderSpinsList() {
+            const list = document.getElementById('spinsList');
+            
+            if (spinsData.length === 0) {
+                list.innerHTML = '<div class="loading">No spins yet</div>';
+                return;
+            }
+
+            spinsData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            list.innerHTML = spinsData.map(spin => {
+                const date = new Date(spin.timestamp);
+                const timeStr = date.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="spin-item">
+                        <div>
+                            <strong>${spin.userId.substring(0, 12)}...</strong>
+                        </div>
+                        <div>
+                            <span class="prize-badge">${spin.prize}</span>
+                        </div>
+                        <div>
+                            ${spin.voucher !== 'none' ? 
+                                `<span class="voucher-code">${spin.voucher}</span>` : 
+                                '<span style="color: #999;">No code</span>'}
+                        </div>
+                        <div style="font-size: 0.9em; color: #666;">
+                            ${timeStr}
+                        </div>
+                        <div>
+                            <button onclick="deleteSpin('${spin.id}')" class="danger" style="padding: 8px 15px; font-size: 0.9em;">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderArchiveList() {
+            const list = document.getElementById('archiveList');
+            
+            if (archiveData.length === 0) {
+                list.innerHTML = '<div class="loading">No archived spins yet</div>';
+                return;
+            }
+
+            archiveData.sort((a, b) => new Date(b.archiveDate || b.timestamp) - new Date(a.archiveDate || a.timestamp));
+
+            list.innerHTML = archiveData.map(spin => {
+                const date = new Date(spin.timestamp);
+                const archiveDate = new Date(spin.archiveDate);
+                const timeStr = date.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const archiveStr = archiveDate.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric'
+                });
+
+                return `
+                    <div class="spin-item">
+                        <div>
+                            <strong>${spin.userId.substring(0, 12)}...</strong>
+                            <br>
+                            <span class="archive-badge">Archived: ${archiveStr}</span>
+                        </div>
+                        <div>
+                            <span class="prize-badge">${spin.prize}</span>
+                        </div>
+                        <div>
+                            ${spin.voucher !== 'none' ? 
+                                `<span class="voucher-code">${spin.voucher}</span>` : 
+                                '<span style="color: #999;">No code</span>'}
+                        </div>
+                        <div style="font-size: 0.9em; color: #666;">
+                            ${timeStr}
+                        </div>
+                        <div>
+                            <button onclick="deleteArchive('${spin.id}')" class="danger" style="padding: 8px 15px; font-size: 0.9em;">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.refreshData = loadData;
+
+        window.deleteSpin = async function(spinId) {
+            if (!confirm('Delete this spin?')) return;
+            
+            try {
+                await deleteDoc(doc(db, 'spins', spinId));
+                alert('✅ Deleted!');
+                loadData();
+            } catch (error) {
+                alert('⚠️ Error');
+            }
+        };
+
+        window.deleteArchive = async function(archiveId) {
+            if (!confirm('Delete this archived spin?')) return;
+            
+            try {
+                await deleteDoc(doc(db, 'spins_archive', archiveId));
+                alert('✅ Deleted from archive!');
+                loadArchive();
+            } catch (error) {
+                alert('⚠️ Error');
+            }
+        };
+
+        window.clearArchive = async function() {
+            if (!confirm('⚠️ Delete ALL archived data? This cannot be undone!')) return;
+            
+            try {
+                const batch = writeBatch(db);
+                archiveData.forEach(item => {
+                    batch.delete(doc(db, 'spins_archive', item.id));
+                });
+                await batch.commit();
+                alert('✅ Archive cleared!');
+                loadArchive();
+            } catch (error) {
+                alert('⚠️ Error clearing archive');
+            }
+        };
+
+        window.resetAllSpins = async function() {
+            if (!confirm('⚠️ This will:\n1. Archive all current spins\n2. Reset the wheel for everyone\n\nContinue?')) return;
+            if (!confirm('Are you ABSOLUTELY sure?')) return;
+
+            try {
+                const archiveDate = new Date().toISOString();
+                const batch = writeBatch(db);
+                
+                // Archive all current spins
+                for (const spin of spinsData) {
+                    const archiveRef = doc(collection(db, 'spins_archive'));
+                    batch.set(archiveRef, {
+                        ...spin,
+                        archiveDate: archiveDate,
+                        originalId: spin.id
+                    });
+                }
+
+                // Delete all current spins
+                spinsData.forEach(spin => {
+                    batch.delete(doc(db, 'spins', spin.id));
+                });
+
+                // Reset global stats
+                batch.set(doc(db, 'stats', 'global'), {
+                    totalSpins: 0,
+                    lastUpdate: new Date().toISOString()
+                });
+
+                await batch.commit();
+                
+                alert('✅ All spins archived and reset!\n\nCheck the Archive tab to see old data.');
+                loadData();
+            } catch (error) {
+                console.error('Reset error:', error);
+                alert('⚠️ Error during reset');
+            }
+        };
+    </script>
+</body>
+</html>
