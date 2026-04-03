@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kataflam - Spin & Win!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2.8em;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #fff;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto 40px;
+        }
+
+        #canvas {
+            border-radius: 50%;
+            box-shadow: 0 0 0 10px #fff, 0 0 0 12px rgba(0,0,0,0.1), 0 15px 50px rgba(0,0,0,0.3);
+        }
+
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            font-size: 3em;
+            color: #fff;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+
+        .center-circle {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: #fff;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #6366f1;
+            border: 5px solid #f8f9fa;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        .spin-button {
+            background: #fff;
+            color: #6366f1;
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.4em;
+            font-weight: 900;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .spin-button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            background: #fef3c7;
+        }
+
+        .spin-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .result-icon { font-size: 4em; margin-bottom: 20px; }
+        .result-title { font-size: 2em; color: #6366f1; margin-bottom: 15px; font-weight: bold; }
+        .voucher-code { background: linear-gradient(135deg, #6366f1, #a855f7); color: white; padding: 20px; border-radius: 10px; font-size: 1.8em; font-weight: bold; margin: 20px 0; letter-spacing: 2px; }
+        .result-message { color: #666; margin-bottom: 20px; font-size: 1.1em; }
+
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        button:hover { background: #a855f7; }
+
+        .footer {
+            color: white;
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(99, 102, 241, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            flex-direction: column;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">🎬 Loading Kataflam...</div>
+    </div>
+
+    <div class="container" id="mainContainer" style="display: none;">
+        <div class="logo">🎬 KATAFLAM</div>
+        <div class="subtitle">Spin the Wheel & Win Amazing Prizes!</div>
+
+        <div class="wheel-container">
+            <div class="pointer">▼</div>
+            <canvas id="canvas" width="400" height="400"></canvas>
+            <div class="center-circle">SPIN</div>
+        </div>
+
+        <button class="spin-button" id="spinBtn">🎯 SPIN NOW!</button>
+        <div class="footer">Complete quizzes to unlock more spins! 🎉</div>
+    </div>
+
+    <div class="container" id="alreadySpun" style="display: none;">
+        <div class="logo">🎬 KATAFLAM</div>
+        <div class="modal-content">
+            <h2>🎯 Already Played!</h2>
+            <p>You've already spun the wheel. Each user gets one spin only!</p>
+            <p>Want more prizes? Follow <strong>@kataflam.eg</strong> and complete more quizzes!</p>
+            <button onclick="window.location.href='https://kataflam.com'">🛒 Shop Now</button>
+            <button onclick="window.location.href='https://instagram.com/kataflam.eg'">📸 Follow @kataflam.eg</button>
+        </div>
+    </div>
+
+    <div class="modal" id="resultModal">
+        <div class="modal-content">
+            <div class="result-icon" id="resultIcon"></div>
+            <div class="result-title" id="resultTitle"></div>
+            <div class="voucher-code" id="voucherCode" style="display:none;"></div>
+            <div class="result-message" id="resultMessage"></div>
+            <button id="copyBtn" style="display:none;">📋 Copy Code</button>
+            <button onclick="window.location.href='https://kataflam.com'">🛒 Shop Now</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8XrdiNB_GsnbrI9ri0ve1E4XqboWCWC8",
+            authDomain: "kataflam-spin.firebaseapp.com",
+            projectId: "kataflam-spin",
+            storageBucket: "kataflam-spin.firebasestorage.app",
+            messagingSenderId: "631678725448",
+            appId: "1:631678725448:web:54dd6ab20ed8e7eeecd77d",
+            measurementId: "G-G0EGYVQMQK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let segments = [];
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let isSpinning = false;
+        let currentRotation = 0;
+        let userId = null;
+
+        // Load wheel configuration from Firebase
+        async function loadWheelConfig() {
+            try {
+                const configDoc = await getDoc(doc(db, 'config', 'wheel'));
+                if (configDoc.exists()) {
+                    segments = configDoc.data().segments;
+                } else {
+                    // Default configuration
+                    segments = [
+                        { text: '20% OFF', color: '#FF6B9D', probability: 15, vouchers: 'KATA20-A1,KATA20-A2,KATA20-A3' },
+                        { text: '10% OFF', color: '#4D96FF', probability: 25, vouchers: 'KATA10-B1,KATA10-B2,KATA10-B3' },
+                        { text: '100 EGP', color: '#FFB84D', probability: 10, vouchers: 'KATA100-C1,KATA100-C2' },
+                        { text: '200 EGP', color: '#38E54D', probability: 5, vouchers: 'KATA200-D1,KATA200-D2' },
+                        { text: 'Try Again', color: '#FF5757', probability: 30, vouchers: '' },
+                        { text: 'Free Ship', color: '#9D4EDD', probability: 10, vouchers: 'FREESHIP-E1,FREESHIP-E2' },
+                        { text: '15% OFF', color: '#06D6A0', probability: 5, vouchers: 'KATA15-F1,KATA15-F2' }
+                    ];
+                }
+                return true;
+            } catch (error) {
+                console.error('Config load error:', error);
+                // Use default segments
+                segments = [
+                    { text: '20% OFF', color: '#FF6B9D', probability: 15, vouchers: 'KATA20-A1,KATA20-A2,KATA20-A3' },
+                    { text: '10% OFF', color: '#4D96FF', probability: 25, vouchers: 'KATA10-B1,KATA10-B2,KATA10-B3' },
+                    { text: '100 EGP', color: '#FFB84D', probability: 10, vouchers: 'KATA100-C1,KATA100-C2' },
+                    { text: '200 EGP', color: '#38E54D', probability: 5, vouchers: 'KATA200-D1,KATA200-D2' },
+                    { text: 'Try Again', color: '#FF5757', probability: 30, vouchers: '' },
+                    { text: 'Free Ship', color: '#9D4EDD', probability: 10, vouchers: 'FREESHIP-E1,FREESHIP-E2' },
+                    { text: '15% OFF', color: '#06D6A0', probability: 5, vouchers: 'KATA15-F1,KATA15-F2' }
+                ];
+                return true;
+            }
+        }
+
+        function getUserId() {
+            let id = localStorage.getItem('kataflam_user_id');
+            if (!id) {
+                id = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('kataflam_user_id', id);
+            }
+            return id;
+        }
+
+        async function checkIfSpun() {
+            userId = getUserId();
+            try {
+                const userDoc = await getDoc(doc(db, 'spins', userId));
+                if (userDoc.exists()) {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    document.getElementById('alreadySpun').style.display = 'block';
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Firebase error:', error);
+                return false;
+            }
+        }
+
+        function drawWheel() {
+            const centerX = 200, centerY = 200, radius = 200;
+            const numSegments = segments.length;
+            const anglePerSegment = (Math.PI * 2) / numSegments;
+
+            ctx.clearRect(0, 0, 400, 400);
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(currentRotation);
+
+            segments.forEach((segment, i) => {
+                const startAngle = i * anglePerSegment;
+                const endAngle = startAngle + anglePerSegment;
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, startAngle, endAngle);
+                ctx.fillStyle = segment.color;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.rotate(startAngle + anglePerSegment / 2);
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Arial';
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 5;
+                ctx.fillText(segment.text, radius * 0.65, 5);
+                ctx.restore();
+            });
+
+            ctx.restore();
+        }
+
+        function selectWinnerByProbability() {
+            const total = segments.reduce((sum, s) => sum + s.probability, 0);
+            let random = Math.random() * total;
+            
+            for (let i = 0; i < segments.length; i++) {
+                random -= segments[i].probability;
+                if (random <= 0) return i;
+            }
+            return 0;
+        }
+
+        async function spin() {
+            if (isSpinning) return;
+            
+            const alreadySpun = await checkIfSpun();
+            if (alreadySpun) return;
+
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('spinBtn').textContent = '🎪 Spinning...';
+
+            const winnerIndex = selectWinnerByProbability();
+            const numSegments = segments.length;
+            const anglePerSegment = (Math.PI * 2) / numSegments;
+
+            const spins = 5;
+            const targetSegmentAngle = winnerIndex * anglePerSegment;
+            const pointerOffset = (Math.PI * 3) / 2;
+            const targetRotation = (Math.PI * 2 * spins) + (pointerOffset - targetSegmentAngle - anglePerSegment / 2);
+
+            const startRotation = currentRotation;
+            const startTime = Date.now();
+            const duration = 4000;
+
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easing = 1 - Math.pow(1 - progress, 3);
+
+                currentRotation = startRotation + (targetRotation - startRotation) * easing;
+                drawWheel();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    saveSpinToFirebase(winnerIndex);
+                }
+            }
+
+            animate();
+        }
+
+        async function saveSpinToFirebase(winnerIndex) {
+            const segment = segments[winnerIndex];
+            const voucherList = segment.vouchers.split(',').map(v => v.trim()).filter(v => v);
+            const voucher = voucherList.length > 0 ? voucherList[Math.floor(Math.random() * voucherList.length)] : null;
+
+            try {
+                await setDoc(doc(db, 'spins', userId), {
+                    userId: userId,
+                    prize: segment.text,
+                    voucher: voucher || 'none',
+                    timestamp: new Date().toISOString()
+                });
+
+                const statsRef = doc(db, 'stats', 'global');
+                const statsDoc = await getDoc(statsRef);
+                
+                if (statsDoc.exists()) {
+                    await updateDoc(statsRef, {
+                        totalSpins: increment(1),
+                        lastUpdate: new Date().toISOString()
+                    });
+                } else {
+                    await setDoc(statsRef, {
+                        totalSpins: 1,
+                        lastUpdate: new Date().toISOString()
+                    });
+                }
+
+                showResult(segment, voucher);
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('⚠️ Connection error. Please try again.');
+            }
+        }
+
+        function showResult(segment, voucher) {
+            document.getElementById('resultIcon').textContent = voucher ? '🎉' : '🎬';
+            document.getElementById('resultTitle').textContent = voucher ? 'Congratulations!' : 'Almost There!';
+            document.getElementById('resultMessage').textContent = voucher 
+                ? `You won ${segment.text}! Use this code at checkout on Kataflam.com`
+                : 'No luck this time! Complete more quizzes for another chance!';
+
+            if (voucher) {
+                document.getElementById('voucherCode').textContent = voucher;
+                document.getElementById('voucherCode').style.display = 'block';
+                document.getElementById('copyBtn').style.display = 'inline-block';
+                document.getElementById('copyBtn').onclick = () => {
+                    navigator.clipboard.writeText(voucher);
+                    alert('✅ Code copied!');
+                };
+            } else {
+                document.getElementById('voucherCode').style.display = 'none';
+                document.getElementById('copyBtn').style.display = 'none';
+            }
+
+            document.getElementById('resultModal').style.display = 'flex';
+        }
+
+        // Initialize
+        async function init() {
+            await loadWheelConfig();
+            drawWheel();
+            const alreadySpun = await checkIfSpun();
+            
+            if (!alreadySpun) {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('mainContainer').style.display = 'block';
+            }
+            
+            document.getElementById('spinBtn').addEventListener('click', spin);
+        }
+
+        init();
+    </script>
+</body>
+</html>
